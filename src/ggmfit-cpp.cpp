@@ -27,7 +27,7 @@ static const char U_char = 'U';
 Rcpp::List cpp_ggmfit
 (const arma::mat &S, const unsigned int n, arma::mat K, 
  const unsigned int nvar, const arma::uvec &glen, const arma::uvec &gg, 
- const unsigned int iter, const double eps)
+ const unsigned int iter, const double eps, const unsigned int details)
 {
   /* setup vector with clique indices */
   std::size_t 
@@ -91,15 +91,22 @@ Rcpp::List cpp_ggmfit
   }
   
   /* run iterative proportional scaling */
+  double prev_ll = 0., ll = 0.;
+  if(details > 0L){
+    ll = cpp_LL(S, K, n, nvar);
+    Rprintf("Initial logL: %14.6f \n", ll);
+  }
   if(ngen == 1)
     Rcpp::stop("Not implemented with ngen == 1");
   unsigned int i = 0;
   for(; i < iter; ++i){
     Rcpp::checkUserInterrupt();
+    
     const arma::mat old_K = K;
+    prev_ll = ll;
+    
     auto resiaul_it = residual_indices.begin();
     auto S_cli_cli_inv = inv_covars.begin();
-    
     for(auto clique : clique_indices){
       const arma::uvec &residuals = *(resiaul_it++);
       size_t n_res = residuals.size();
@@ -123,10 +130,16 @@ Rcpp::List cpp_ggmfit
     /* TODO: change convergence criteria to match w/ C version? */
     if(arma::norm(K - old_K) / arma::norm(K) < eps)
       break;
+    
+    if(details > 0L){
+      ll = cpp_LL(S, K, n, nvar);
+      Rprintf("Iteration: %3i logL: %14.6f diff logL: %20.13f\n", 
+              i + 1L, ll, ll - prev_ll);
+    }
   }
   
   return Rcpp::List::create(
-    Rcpp::Named("logL") = cpp_LL(S, K, n, nvar), /* TODO: compute */
+    Rcpp::Named("logL") = cpp_LL(S, K, n, nvar),
     Rcpp::Named("K") = std::move(K),
     Rcpp::Named("iter") = i + 1L);
 }

@@ -99,14 +99,13 @@ cmod <- function(formula, data, marginal=NULL, fit=TRUE, details=0){
 
 
 fit.cModel <- function(object, engine="ggmfit",start=NULL, ...){
-
   switch(engine,
          "ggmfit" =
            ff<-ggmfit (object$datainfo$S, n.obs=object$datainfo$n.obs, glist=object$glist,
                        start=start, details=0,...),
          "ggmfit-cpp" =
            ff<-ggmfit (object$datainfo$S, n.obs=object$datainfo$n.obs, glist=object$glist,
-                       start=start, details=0, use_cpp = TRUE),
+                       start=start, details=0, use_cpp = TRUE, ...),
          "ggmfitr"=
            ff<-ggmfitr(object$datainfo$S, n.obs=object$datainfo$n.obs, glist=object$glist,
                        start=start, details=0,...)

@@ -7,8 +7,8 @@
 using namespace Rcpp;
 
 // cpp_ggmfit
-Rcpp::List cpp_ggmfit(const arma::mat& S, const unsigned int n, arma::mat K, const unsigned int nvar, const arma::uvec& glen, const arma::uvec& gg, const unsigned int iter, const double eps);
-RcppExport SEXP _gRim_cpp_ggmfit(SEXP SSEXP, SEXP nSEXP, SEXP KSEXP, SEXP nvarSEXP, SEXP glenSEXP, SEXP ggSEXP, SEXP iterSEXP, SEXP epsSEXP) {
+Rcpp::List cpp_ggmfit(const arma::mat& S, const unsigned int n, arma::mat K, const unsigned int nvar, const arma::uvec& glen, const arma::uvec& gg, const unsigned int iter, const double eps, const unsigned int details);
+RcppExport SEXP _gRim_cpp_ggmfit(SEXP SSEXP, SEXP nSEXP, SEXP KSEXP, SEXP nvarSEXP, SEXP glenSEXP, SEXP ggSEXP, SEXP iterSEXP, SEXP epsSEXP, SEXP detailsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -20,7 +20,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::uvec& >::type gg(ggSEXP);
     Rcpp::traits::input_parameter< const unsigned int >::type iter(iterSEXP);
     Rcpp::traits::input_parameter< const double >::type eps(epsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_ggmfit(S, n, K, nvar, glen, gg, iter, eps));
+    Rcpp::traits::input_parameter< const unsigned int >::type details(detailsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_ggmfit(S, n, K, nvar, glen, gg, iter, eps, details));
     return rcpp_result_gen;
 END_RCPP
 }

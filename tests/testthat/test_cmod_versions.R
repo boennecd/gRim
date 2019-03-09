@@ -9,5 +9,8 @@ test_that("different 'cmod' version gives the same", {
   f_c   <- fit(obj, engine = "ggmfit")
   f_cpp <- fit(obj, engine = "ggmfit-cpp")
   
-  expect_equal(f_c, f_cpp)  
+  expect_equal(f_c, f_cpp)
+  
+  to_test <- f_c[names(f_c) != "datainfo"]
+  expect_known_value(to_test, "carcass-test.RDS")
 })

@@ -89,7 +89,7 @@ ggmfit <- function(S, n.obs, glist, start=NULL,
   ## dyn.load("ggmfit.dll")
   xxx <- if(use_cpp){
     cpp_ggmfit(S = S, n = n.obs, K = start, nvar = nvar, glen = glen, 
-               gg = gg, iter = iter, eps = eps)
+               gg = gg, iter = iter, eps = eps, details = details)
     
   } else 
     .C("Cggmfit", S=S, n=as.integer(n.obs), K=start, nvar=nvar, ngen=ng, 
