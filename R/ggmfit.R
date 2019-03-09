@@ -44,9 +44,9 @@
 #' 
 #' @export ggmfit
 ggmfit <- function(S, n.obs, glist, start=NULL, 
-                   eps=1e-12, iter=1000, details=0, ...)
+                   eps=1e-12, iter=1000, details=0, 
+                   use_cpp = FALSE, ...)
 {
-
   #cat("ggmfit:\n"); print(S); print(n.obs); print(glist)
   
   glist.save <- glist.num <- glist
@@ -87,12 +87,17 @@ ggmfit <- function(S, n.obs, glist, start=NULL,
   }
 
   ## dyn.load("ggmfit.dll")
-  xxx<-.C("Cggmfit", S=S, n=as.integer(n.obs), K=start, nvar=nvar, ngen=ng, 
-          glen=glen, glist=gg, clen=clen, clist=cc, 
-          logL=numeric(1), eps=as.numeric(eps),
-          iter=as.integer(iter), converged=as.integer(1),
-          details=as.integer(details),
-          PACKAGE="gRim")
+  xxx <- if(use_cpp){
+    cpp_ggmfit(S = S, n = n.obs, K = start, nvar = nvar, glen = glen, 
+               gg = gg, iter = iter, eps = eps)
+    
+  } else 
+    .C("Cggmfit", S=S, n=as.integer(n.obs), K=start, nvar=nvar, ngen=ng, 
+        glen=glen, glist=gg, clen=clen, clist=cc, 
+        logL=numeric(1), eps=as.numeric(eps),
+        iter=as.integer(iter), converged=as.integer(1),
+        details=as.integer(details),
+        PACKAGE="gRim")
   ## dyn.unload("ggmfit.dll")
 
   xxx             <- xxx[c("logL", "K", "iter")]  

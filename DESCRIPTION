@@ -11,11 +11,14 @@ URL: http://people.math.aau.dk/~sorenh/software/gR/
 Encoding: UTF-8
 Depends: R (>= 3.0.2), methods, gRbase (>= 1.8-3)
 Imports: igraph, graph, gRain, Rcpp (>= 0.11.1)
-Suggests: Rgraphviz
+Suggests: 
+    Rgraphviz,
+    testthat
 ByteCompile: yes
 LinkingTo: Rcpp (>= 0.11.1), RcppArmadillo
 RoxygenNote: 6.0.1
 NeedsCompilation: yes
+SystemRequirements: C++11
 Packaged: 2017-03-31 11:11:18 UTC; sorenh
 Repository: CRAN
 Date/Publication: 2017-03-31 12:45:47 UTC

@@ -101,14 +101,15 @@ cmod <- function(formula, data, marginal=NULL, fit=TRUE, details=0){
 fit.cModel <- function(object, engine="ggmfit",start=NULL, ...){
 
   switch(engine,
-         "ggmfit" ={
+         "ggmfit" =
            ff<-ggmfit (object$datainfo$S, n.obs=object$datainfo$n.obs, glist=object$glist,
-                       start=start, details=0,...)
-         },
-         "ggmfitr"={
+                       start=start, details=0,...),
+         "ggmfit-cpp" =
+           ff<-ggmfit (object$datainfo$S, n.obs=object$datainfo$n.obs, glist=object$glist,
+                       start=start, details=0, use_cpp = TRUE),
+         "ggmfitr"=
            ff<-ggmfitr(object$datainfo$S, n.obs=object$datainfo$n.obs, glist=object$glist,
                        start=start, details=0,...)
-         }
          )
 
   idev  <-  ff$n.obs * (log(ff$detK) + sum(log(diag(ff$S))))  ## ideviance to independence model  
