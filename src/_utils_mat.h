@@ -2,7 +2,7 @@
    
    Various matrix utility functions
 
-   Author: Søren Højsgaard
+   Author: S?ren H?jsgaard
 
    ************************************************************ */ 
 
@@ -49,3 +49,13 @@ void C_determinant(double *Ain, int *nrA, double *ans);
 
 void C_traceABsym(double *A, int *nrA, int *ncA,
 		 double *B, int *nrB, int *ncB, double *ans);
+
+void dposv_wrap(
+  const char*, const int*, const int*, double*, const int*,
+  double*, const int*, int*);
+
+void dpotri_wrap(
+  const char*, const int*, double*, const int*, int*);
+
+void dpotrf_wrap(
+  const char*, const int*, double*, const int*, int*);

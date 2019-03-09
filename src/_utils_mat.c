@@ -2,7 +2,7 @@
    
    Various matrix utility functions
    
-   Author: Søren Højsgaard
+   Author: S?ren H?jsgaard
    
    ************************************************************ */ 
 
@@ -557,4 +557,26 @@ void C_traceABsym(double *A, int *nrA, int *ncA,
 
   //Rprintf("tr: %f\n", x);
   *ans=x;
+}
+
+void dposv_wrap(
+  const char *uplo, const int *n, const int *nrhs,
+  double *a, const int *lda,
+  double *b, const int *ldb, int *info)
+{
+  F77_CALL(dposv)(uplo, n, nrhs, a, lda, b, ldb, info);
+}
+
+void dpotri_wrap(
+    const char* uplo, const int* n,
+    double* a, const int* lda, int* info)
+{
+  F77_CALL(dpotri)(uplo, n, a, lda, info);
+}
+
+void dpotrf_wrap(
+    const char* uplo, const int* n,
+    double* a, const int* lda, int* info)
+{
+  F77_CALL(dpotrf)(uplo, n, a, lda, info);
 }
