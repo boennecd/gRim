@@ -1,6 +1,7 @@
 #include <RcppArmadillo.h>
 #include <vector>
 #include <algorithm>
+#include <cmath> 
 
 extern "C"
 {
@@ -10,6 +11,38 @@ extern "C"
 
 double cpp_LL
   (const arma::mat&, const arma::mat&, const arma::uword, const arma::uword);
+
+inline Rcpp::List cpp_ggmfit_return
+  (const arma::mat &S, arma::mat &K, const unsigned int n, 
+   const unsigned int nvar, const unsigned int iter)
+{
+  return Rcpp::List::create(
+    Rcpp::Named("logL") = cpp_LL(S, K, n, nvar),
+    Rcpp::Named("K") = std::move(K),
+    Rcpp::Named("iter") = iter);
+}
+
+bool conv_criteria(const arma::mat&, const arma::mat&, const double);
+
+static const char U_char = 'U';
+
+template<typename T>
+arma::mat sym_mat_inv(T &X){
+  arma::mat Z = X; /* copy */
+  int dim = Z.n_cols, info;
+  
+  dpotrf_wrap(&U_char, &dim, Z.memptr(), &dim, &info);
+  if(info != 0L)
+    Rcpp::stop("'dpotrf' failed with INFO: " + std::to_string(info));
+  
+  dpotri_wrap(&U_char, &dim, Z.memptr(), &dim, &info);
+  if(info != 0L)
+    Rcpp::stop("'dportri' failed with INFO: " + std::to_string(info));
+  
+  Z = arma::symmatu(Z);
+  
+  return Z;
+}
 
 /* S      covariance matrix 
  * n      number of observations
@@ -21,19 +54,23 @@ double cpp_LL
  * eps    convergence threshold
  */
 
-static const char U_char = 'U';
-
 //[[Rcpp::export]]
 Rcpp::List cpp_ggmfit
 (const arma::mat &S, const unsigned int n, arma::mat K, 
  const unsigned int nvar, const arma::uvec &glen, const arma::uvec &gg, 
  const unsigned int iter, const double eps, const unsigned int details)
 {
+  const std::size_t ngen = glen.size(); /* number of cliques */
+  
+  /* return quickly if possible */
+  if(ngen == 1){
+    K = sym_mat_inv(S);
+    return cpp_ggmfit_return(S, K, n, nvar, 0L);
+    
+  }
+  
   /* setup vector with clique indices */
-  std::size_t 
-    ngen = gg.size(), /* number of cliques */
-    max_clique_size = 0L, 
-    max_resid_size  = 0L;
+  std::size_t max_clique_size = 0L, max_resid_size  = 0L;
   std::vector<arma::uvec> clique_indices;
   clique_indices.reserve(ngen);
   /* TODO: avoid O(nvar * ngen) storage and do a bit extra computation? */
@@ -76,19 +113,8 @@ Rcpp::List cpp_ggmfit
    * This can be done in parallel but it is not the bottleneck */
   std::vector<arma::mat> inv_covars;
   inv_covars.reserve(ngen);
-  for(auto clique : clique_indices){
-    arma::mat tmp = S(clique, clique);
-    int dim = tmp.n_cols, info;
-    
-    dpotrf_wrap(&U_char, &dim, tmp.memptr(), &dim, &info);
-    if(info != 0L)
-      Rcpp::stop("'dpotrf' failed with INFO: " + std::to_string(info));
-    
-    dpotri_wrap(&U_char, &dim, tmp.memptr(), &dim, &info);
-    if(info != 0L)
-      Rcpp::stop("'dportri' failed with INFO: " + std::to_string(info));
-    inv_covars.emplace_back(arma::symmatu(tmp));
-  }
+  for(auto clique : clique_indices)
+    inv_covars.emplace_back(sym_mat_inv(S(clique, clique)));
   
   /* run iterative proportional scaling */
   double prev_ll = 0., ll = 0.;
@@ -96,13 +122,12 @@ Rcpp::List cpp_ggmfit
     ll = cpp_LL(S, K, n, nvar);
     Rprintf("Initial logL: %14.6f \n", ll);
   }
-  if(ngen == 1)
-    Rcpp::stop("Not implemented with ngen == 1");
   unsigned int i = 0;
+  arma::mat S_working = sym_mat_inv(K);
   for(; i < iter; ++i){
     Rcpp::checkUserInterrupt();
     
-    const arma::mat old_K = K;
+    const arma::mat old_K = K, S_working_old = std::move(S_working);
     prev_ll = ll;
     
     auto resiaul_it = residual_indices.begin();
@@ -127,8 +152,8 @@ Rcpp::List cpp_ggmfit
         K(clique, residuals) * K_res_cli;
     }
     
-    /* TODO: change convergence criteria to match w/ C version? */
-    if(arma::norm(K - old_K) / arma::norm(K) < eps)
+    S_working = sym_mat_inv(K);
+    if(conv_criteria(S_working, S_working_old, eps))
       break;
     
     if(details > 0L){
@@ -138,10 +163,7 @@ Rcpp::List cpp_ggmfit
     }
   }
   
-  return Rcpp::List::create(
-    Rcpp::Named("logL") = cpp_LL(S, K, n, nvar),
-    Rcpp::Named("K") = std::move(K),
-    Rcpp::Named("iter") = i + 1L);
+  return cpp_ggmfit_return(S, K, n, nvar, i + 1L);
 }
 
 double cpp_LL
@@ -156,3 +178,21 @@ double cpp_LL
   
   return - (double)nobs * nvar * log(2. * M_PI) / 2. + nobs / 2. * (l_det - trace);
 }
+
+bool conv_criteria(
+    const arma::mat &new_mat, const arma::mat &old_mat, const double eps){
+  const arma::uword dim = new_mat.n_cols; /* assume symmetrical */
+  
+  for(arma::uword i = 0; i < dim; ++i)
+    for(arma::uword j = 0; j <= i; ++j){
+      double num = std::abs(new_mat(i, j) - old_mat(i, j));
+      double den = std::sqrt(
+        new_mat(i, i) * new_mat(j, j) + new_mat(i, j) * new_mat(i, j));
+      
+      if(num/den > eps)
+        return false;
+    }
+  
+  return true;
+}
+
