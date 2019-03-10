@@ -92,8 +92,13 @@ ggmfit <- function(
       cpp_ggmfit, cpp_ggmfit_wood, 
       stop(sQuote("cpp_method"), " ", cpp_method, " not implemented"))
     
-    meth(S = S, n = n.obs, K = start, nvar = nvar, glen = glen, 
-         gg = gg, iter = iter, eps = eps, details = details)
+    # TODO: make it possible for the user to set this value
+    n_threads <- if(uses_openblas()) 4L else 1L
+    # n_threads <- if(uses_openblas()) detectCores(logical = FALSE) else 1L
+    
+    meth(
+      S = S, n = n.obs, K = start, nvar = nvar, glen = glen, 
+      gg = gg, iter = iter, eps = eps, details = details, n_threads = n_threads)
     
   } else 
     .C("Cggmfit", S=S, n=as.integer(n.obs), K=start, nvar=nvar, ngen=ng, 

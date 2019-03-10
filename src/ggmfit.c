@@ -10,6 +10,9 @@
 #include "_utils_mat.h"
 #include "_utils_print.h"
 
+#ifdef HAS_OPENBLAS
+extern void openblas_set_num_threads(int);
+#endif
 
 double eval_logL(double *S, double *K, int *nobs, int *nvar, int *details);
 
@@ -27,6 +30,11 @@ void Cggmfit(double *S,     int *nobs,    double *K,
 	     int *converged, int *details)
 {
   // Rprintf("WORKING VERSION OF CGGMFIT\n");
+  
+#ifdef HAS_OPENBLAS
+  /* TODO: change */
+  openblas_set_num_threads(4L);
+#endif
 
   int ii, kk, currg, ng, nc, itcount=0, firstg, lastg, firstc, lastc;
   int *gset, *cset; 

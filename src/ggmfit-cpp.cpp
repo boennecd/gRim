@@ -5,8 +5,12 @@
 extern "C"
 {
   #include "_utils_mat.h"
+  
+#ifdef HAS_OPENBLAS
+  int  openblas_get_num_threads();
+  void openblas_set_num_threads(int);
+#endif
 }
-
 
 double cpp_LL
   (const arma::mat&, const arma::mat&, const arma::uword, const arma::uword);
@@ -48,6 +52,42 @@ arma::mat sym_mat_inv(T X){
   return Z;
 }
 
+class n_thread_reseter {
+#ifdef HAS_OPENBLAS
+  int old_n_thread = -1L;
+#endif
+  
+public:
+  void set_n_threads(int n_threads){
+    if(n_threads < 1L)
+      Rcpp::stop("Invalid 'n_threads'");
+#ifdef HAS_OPENBLAS
+    if(old_n_thread < 1L)
+      old_n_thread = openblas_get_num_threads();
+    openblas_set_num_threads(n_threads);
+#else
+    if(n_threads != 1L)
+      Rcpp::warning("'n_threads' != 1L without openBLAS");
+#endif
+  }
+  
+#ifdef HAS_OPENBLAS
+  ~n_thread_reseter()
+  {
+    openblas_set_num_threads(old_n_thread);
+  }
+#endif
+};
+
+//[[Rcpp::export]]
+bool uses_openblas(){
+#ifdef HAS_OPENBLAS
+  return true;
+#else
+  return false;
+#endif
+}
+
 /* S      covariance matrix 
  * n      number of observations
  * K      starting value for concentration matrix
@@ -62,8 +102,12 @@ arma::mat sym_mat_inv(T X){
 Rcpp::List cpp_ggmfit
 (const arma::mat &S, const unsigned int n, arma::mat K, 
  const unsigned int nvar, const arma::uvec &glen, const arma::uvec &gg, 
- const unsigned int iter, const double eps, const unsigned int details)
+ const unsigned int iter, const double eps, const unsigned int details, 
+ const unsigned int n_threads = 1L)
 {
+  n_thread_reseter reseter;
+  reseter.set_n_threads(n_threads);
+  
   const std::size_t ngen = glen.size(); /* number of cliques */
   
   /* return quickly if possible */
@@ -150,8 +194,12 @@ Rcpp::List cpp_ggmfit
 Rcpp::List cpp_ggmfit_wood
   (const arma::mat &S, const unsigned int n, arma::mat K, 
    const unsigned int nvar, const arma::uvec &glen, const arma::uvec &gg, 
-   const unsigned int iter, const double eps, const unsigned int details)
+   const unsigned int iter, const double eps, const unsigned int details, 
+   const unsigned int n_threads = 1L)
 {
+  n_thread_reseter reseter;
+  reseter.set_n_threads(n_threads);
+  
   const std::size_t ngen = glen.size(); /* number of cliques */
   
   /* return quickly if possible */

@@ -6,9 +6,19 @@
 
 using namespace Rcpp;
 
+// uses_openblas
+bool uses_openblas();
+RcppExport SEXP _gRim_uses_openblas() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(uses_openblas());
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_ggmfit
-Rcpp::List cpp_ggmfit(const arma::mat& S, const unsigned int n, arma::mat K, const unsigned int nvar, const arma::uvec& glen, const arma::uvec& gg, const unsigned int iter, const double eps, const unsigned int details);
-RcppExport SEXP _gRim_cpp_ggmfit(SEXP SSEXP, SEXP nSEXP, SEXP KSEXP, SEXP nvarSEXP, SEXP glenSEXP, SEXP ggSEXP, SEXP iterSEXP, SEXP epsSEXP, SEXP detailsSEXP) {
+Rcpp::List cpp_ggmfit(const arma::mat& S, const unsigned int n, arma::mat K, const unsigned int nvar, const arma::uvec& glen, const arma::uvec& gg, const unsigned int iter, const double eps, const unsigned int details, const unsigned int n_threads);
+RcppExport SEXP _gRim_cpp_ggmfit(SEXP SSEXP, SEXP nSEXP, SEXP KSEXP, SEXP nvarSEXP, SEXP glenSEXP, SEXP ggSEXP, SEXP iterSEXP, SEXP epsSEXP, SEXP detailsSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -21,13 +31,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const unsigned int >::type iter(iterSEXP);
     Rcpp::traits::input_parameter< const double >::type eps(epsSEXP);
     Rcpp::traits::input_parameter< const unsigned int >::type details(detailsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_ggmfit(S, n, K, nvar, glen, gg, iter, eps, details));
+    Rcpp::traits::input_parameter< const unsigned int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_ggmfit(S, n, K, nvar, glen, gg, iter, eps, details, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // cpp_ggmfit_wood
-Rcpp::List cpp_ggmfit_wood(const arma::mat& S, const unsigned int n, arma::mat K, const unsigned int nvar, const arma::uvec& glen, const arma::uvec& gg, const unsigned int iter, const double eps, const unsigned int details);
-RcppExport SEXP _gRim_cpp_ggmfit_wood(SEXP SSEXP, SEXP nSEXP, SEXP KSEXP, SEXP nvarSEXP, SEXP glenSEXP, SEXP ggSEXP, SEXP iterSEXP, SEXP epsSEXP, SEXP detailsSEXP) {
+Rcpp::List cpp_ggmfit_wood(const arma::mat& S, const unsigned int n, arma::mat K, const unsigned int nvar, const arma::uvec& glen, const arma::uvec& gg, const unsigned int iter, const double eps, const unsigned int details, const unsigned int n_threads);
+RcppExport SEXP _gRim_cpp_ggmfit_wood(SEXP SSEXP, SEXP nSEXP, SEXP KSEXP, SEXP nvarSEXP, SEXP glenSEXP, SEXP ggSEXP, SEXP iterSEXP, SEXP epsSEXP, SEXP detailsSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -40,7 +51,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const unsigned int >::type iter(iterSEXP);
     Rcpp::traits::input_parameter< const double >::type eps(epsSEXP);
     Rcpp::traits::input_parameter< const unsigned int >::type details(detailsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_ggmfit_wood(S, n, K, nvar, glen, gg, iter, eps, details));
+    Rcpp::traits::input_parameter< const unsigned int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_ggmfit_wood(S, n, K, nvar, glen, gg, iter, eps, details, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
