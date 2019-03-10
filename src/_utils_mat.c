@@ -2,7 +2,7 @@
    
    Various matrix utility functions
    
-   Author: S?ren H?jsgaard
+   Author: Søren Højsgaard
    
    ************************************************************ */ 
 
