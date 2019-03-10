@@ -43,9 +43,9 @@
 #' 
 #' 
 #' @export ggmfit
-ggmfit <- function(S, n.obs, glist, start=NULL, 
-                   eps=1e-12, iter=1000, details=0, 
-                   use_cpp = FALSE, ...)
+ggmfit <- function(
+  S, n.obs, glist, start=NULL, eps=1e-12, iter=1000, details=0, 
+  use_cpp = FALSE, cpp_method = 1L, ...)
 {
   #cat("ggmfit:\n"); print(S); print(n.obs); print(glist)
   
@@ -88,8 +88,12 @@ ggmfit <- function(S, n.obs, glist, start=NULL,
 
   ## dyn.load("ggmfit.dll")
   xxx <- if(use_cpp){
-    cpp_ggmfit(S = S, n = n.obs, K = start, nvar = nvar, glen = glen, 
-               gg = gg, iter = iter, eps = eps, details = details)
+    meth <- switch (cpp_method,
+      cpp_ggmfit, cpp_ggmfit_wood, 
+      stop(sQuote("cpp_method"), " ", cpp_method, " not implemented"))
+    
+    meth(S = S, n = n.obs, K = start, nvar = nvar, glen = glen, 
+         gg = gg, iter = iter, eps = eps, details = details)
     
   } else 
     .C("Cggmfit", S=S, n=as.integer(n.obs), K=start, nvar=nvar, ngen=ng, 
@@ -101,6 +105,7 @@ ggmfit <- function(S, n.obs, glist, start=NULL,
   ## dyn.unload("ggmfit.dll")
 
   xxx             <- xxx[c("logL", "K", "iter")]  
+  xxx$K[abs(xxx$K) < .Machine$double.eps] <- 0.
 
   dimnames(xxx$K) <- dimnames(S)
   detK  <- det(xxx$K)

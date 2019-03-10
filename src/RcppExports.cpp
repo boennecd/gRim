@@ -25,6 +25,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_ggmfit_wood
+Rcpp::List cpp_ggmfit_wood(const arma::mat& S, const unsigned int n, arma::mat K, const unsigned int nvar, const arma::uvec& glen, const arma::uvec& gg, const unsigned int iter, const double eps, const unsigned int details);
+RcppExport SEXP _gRim_cpp_ggmfit_wood(SEXP SSEXP, SEXP nSEXP, SEXP KSEXP, SEXP nvarSEXP, SEXP glenSEXP, SEXP ggSEXP, SEXP iterSEXP, SEXP epsSEXP, SEXP detailsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type S(SSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type K(KSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type nvar(nvarSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type glen(glenSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type gg(ggSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type iter(iterSEXP);
+    Rcpp::traits::input_parameter< const double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type details(detailsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_ggmfit_wood(S, n, K, nvar, glen, gg, iter, eps, details));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ghk2pmsParms_
 List ghk2pmsParms_(List parms);
 RcppExport SEXP _gRim_ghk2pmsParms_(SEXP parmsSEXP) {

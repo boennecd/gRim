@@ -19,6 +19,7 @@ extern SEXP _gRim_pms2ghkParms_(SEXP);
 extern SEXP _gRim_updateA(SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gRim_update_ghkParms_(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP _gRim_cpp_ggmfit(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP _gRim_cpp_ggmfit_wood(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 static const R_CMethodDef CEntries[] = {
     {"Cggmfit", (DL_FUNC) &Cggmfit, 14},
@@ -34,6 +35,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_gRim_updateA",             (DL_FUNC) &_gRim_updateA,             4},
     {"_gRim_update_ghkParms_",    (DL_FUNC) &_gRim_update_ghkParms_,    9},
     {"_gRim_cpp_ggmfit",          (DL_FUNC) &_gRim_cpp_ggmfit,          9},
+    {"_gRim_cpp_ggmfit_wood",     (DL_FUNC) &_gRim_cpp_ggmfit_wood,     9},
     {NULL, NULL, 0}
 };
 

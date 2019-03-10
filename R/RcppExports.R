@@ -5,6 +5,10 @@ cpp_ggmfit <- function(S, n, K, nvar, glen, gg, iter, eps, details) {
     .Call('_gRim_cpp_ggmfit', PACKAGE = 'gRim', S, n, K, nvar, glen, gg, iter, eps, details)
 }
 
+cpp_ggmfit_wood <- function(S, n, K, nvar, glen, gg, iter, eps, details) {
+    .Call('_gRim_cpp_ggmfit_wood', PACKAGE = 'gRim', S, n, K, nvar, glen, gg, iter, eps, details)
+}
+
 ghk2pmsParms_ <- function(parms) {
     .Call('_gRim_ghk2pmsParms_', PACKAGE = 'gRim', parms)
 }
