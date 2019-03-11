@@ -580,3 +580,10 @@ void dpotrf_wrap(
 {
   F77_CALL(dpotrf)(uplo, n, a, lda, info);
 }
+
+void dgesv_wrap(
+    const int *n, const int *nrhs, double *a, const int *lda,
+    int *ipiv, double *b, const int *ldb, int *info)
+{
+  F77_CALL(dgesv)(n, nrhs, a, lda, ipiv, b, ldb, info);
+}

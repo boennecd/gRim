@@ -2,24 +2,22 @@
 #include <vector>
 #include <algorithm>
 #include <cmath> 
+
 extern "C"
 {
   #include "_utils_mat.h"
 }
 
+# define CHECK_LAPACK_INFO(info_var, meth_name)                           \
+if(info_var != 0)                                                         \
+  Rcpp::stop("'#meth_name' failed with INFO: " + std::to_string(info));
 
 double cpp_LL
   (const arma::mat&, const arma::mat&, const arma::uword, const arma::uword);
 
-inline Rcpp::List cpp_ggmfit_return
-  (const arma::mat &S, arma::mat &K, const unsigned int n, 
-   const unsigned int nvar, const unsigned int iter)
-{
-  return Rcpp::List::create(
-    Rcpp::Named("logL") = cpp_LL(S, K, n, nvar),
-    Rcpp::Named("K") = std::move(K),
-    Rcpp::Named("iter") = iter);
-}
+Rcpp::List cpp_ggmfit_return
+  (const arma::mat&, arma::mat&, const unsigned int, const unsigned int, 
+   const unsigned int);
 
 bool conv_criteria(const arma::mat&, const arma::mat&, const double);
 
@@ -36,12 +34,10 @@ arma::mat sym_mat_inv(T X){
   int dim = Z.n_cols, info;
   
   dpotrf_wrap(&U_char, &dim, Z.memptr(), &dim, &info);
-  if(info != 0L)
-    Rcpp::stop("'dpotrf' failed with INFO: " + std::to_string(info));
+  CHECK_LAPACK_INFO(info, dpotrf)
   
   dpotri_wrap(&U_char, &dim, Z.memptr(), &dim, &info);
-  if(info != 0L)
-    Rcpp::stop("'dportri' failed with INFO: " + std::to_string(info));
+  CHECK_LAPACK_INFO(info, dpotri)
   
   Z = arma::symmatu(Z);
   
@@ -125,8 +121,7 @@ Rcpp::List cpp_ggmfit
       dposv_wrap(
         &U_char, &n_res_i, &nrhs, K_res_res.memptr(), 
         &n_res_i, K_res_cli.memptr(), &n_res_i, &info);
-      if(info != 0L)
-        Rcpp::stop("'dposv' failed with INFO: " + std::to_string(info));
+      CHECK_LAPACK_INFO(info, dposv)
       
       K(clique, clique) =  *(S_cli_cli_inv++) +
         K(clique, residuals) * K_res_cli;
@@ -184,6 +179,8 @@ Rcpp::List cpp_ggmfit_wood
   
   /* run iterative proportional scaling */
   unsigned int i = 0;
+  int nrhs = S.n_cols;
+  std::unique_ptr<int[]> ipiv(new int[nrhs]);
   arma::mat S_working = sym_mat_inv(K);
   for(; i < iter; ++i){
     const arma::mat S_working_old = S_working;
@@ -202,7 +199,12 @@ Rcpp::List cpp_ggmfit_wood
       arma::mat H = Delta_S_clique.cols(clique);
       H.diag() += 1.;
       
-      S_working -= S_clique.t() * arma::solve(H, Delta_S_clique);
+      int dim = H.n_cols, info;
+      dgesv_wrap(&dim, &nrhs, H.memptr(), &dim, ipiv.get(), 
+                 Delta_S_clique.memptr(), &dim, &info);
+      CHECK_LAPACK_INFO(info, dgesv)
+      
+      S_working -= S_clique.t() * Delta_S_clique;
       
     }
     
@@ -293,4 +295,14 @@ std::tuple<
       std::move(clique_indices), std::move(residual_indices), 
       max_clique_size, max_resid_size);
   }
+
+Rcpp::List cpp_ggmfit_return
+  (const arma::mat &S, arma::mat &K, const unsigned int n, 
+   const unsigned int nvar, const unsigned int iter)
+{
+  return Rcpp::List::create(
+    Rcpp::Named("logL") = cpp_LL(S, K, n, nvar),
+    Rcpp::Named("K") = std::move(K),
+    Rcpp::Named("iter") = iter);
+}
 

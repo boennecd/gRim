@@ -59,3 +59,7 @@ void dpotri_wrap(
 
 void dpotrf_wrap(
   const char*, const int*, double*, const int*, int*);
+
+void dgesv_wrap(
+  const int*, const int*, double*, const int*, int*, double*, const int*, 
+  int*);
