@@ -89,7 +89,7 @@ ggmfit <- function(
   ## dyn.load("ggmfit.dll")
   xxx <- if(use_cpp){
     meth <- switch (cpp_method,
-      cpp_ggmfit, cpp_ggmfit_wood, 
+      cpp_ggmfit, cpp_ggmfit_wood, cpp_ggmfit_reg,
       stop(sQuote("cpp_method"), " ", cpp_method, " not implemented"))
     
     meth(S = S, n = n.obs, K = start, nvar = nvar, glen = glen, 

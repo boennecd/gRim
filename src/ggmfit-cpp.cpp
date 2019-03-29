@@ -10,7 +10,7 @@ extern "C"
 
 # define CHECK_LAPACK_INFO(info_var, meth_name)                           \
 if(info_var != 0)                                                         \
-  Rcpp::stop("'#meth_name' failed with INFO: " + std::to_string(info));
+  Rcpp::stop("'" #meth_name "' failed with INFO: " + std::to_string(info));
 
 double cpp_LL
   (const arma::mat&, const arma::mat&, const arma::uword, const arma::uword);
@@ -22,6 +22,7 @@ Rcpp::List cpp_ggmfit_return
 bool conv_criteria(const arma::mat&, const arma::mat&, const double);
 
 static const char U_char = 'U';
+static int one_int = 1L;
 
 std::tuple<
   std::vector<arma::uvec>, std::vector<arma::uvec>, 
@@ -54,6 +55,156 @@ arma::mat sym_mat_inv(T X){
  * eps    convergence threshold
  */
 
+inline Rcpp::List return_quick
+  (const arma::mat &S, const unsigned int n, arma::mat &K, 
+   const unsigned int nvar){
+  K = sym_mat_inv(S);
+  return cpp_ggmfit_return(S, K, n, nvar, 0L);
+}
+
+//[[Rcpp::export]]
+Rcpp::List cpp_ggmfit_reg
+  (const arma::mat &S, const unsigned int n, arma::mat K, 
+   const unsigned int nvar, const arma::uvec &glen, const arma::uvec &gg, 
+   const unsigned int iter, const double eps, const unsigned int details)
+{
+  const std::size_t ngen = glen.size(); /* number of cliques */
+  const arma::uword dim = K.n_cols;
+  
+  /* return quickly if possible */
+  if(ngen == 1)
+    return return_quick(S, n, K, nvar);
+  
+  /* make vector with indices of conditionally independent neighbors */
+  std::vector<arma::uvec> non_zero_indices;
+  unsigned int max_size = 0L;
+  {
+    std::vector<std::set<arma::uword> > unique_indices(dim);
+    
+    /* loop over cliques and add all neighbors. Could like be done way 
+     * smarter... */
+    auto gg_i = gg.begin();
+    for(auto n_members : glen){
+      if(n_members < 2L){
+        gg_i += n_members;
+        continue;
+      }
+      
+      auto end = gg_i + n_members, start = gg_i;
+      for(auto g1 = gg_i; g1 != end; ++g1)
+        unique_indices[*g1].insert(start, end);
+      
+      gg_i += n_members;
+    }
+    
+    /* remove own index */
+    arma::uword c = 0L; 
+    for(auto &u : unique_indices){
+      auto idx = u.find(c++);
+      if(idx != u.end())
+        u.erase(idx);
+    }
+    
+    /* make uvecs with indices */
+    non_zero_indices.reserve(K.n_cols);
+    for(auto u : unique_indices){
+      non_zero_indices.emplace_back(u.size());
+      auto *b = non_zero_indices.back().begin();
+      for(auto new_val : u)
+        *(b++) = new_val;
+      
+      if(u.size() > max_size)
+        max_size = u.size();
+    }
+  }
+  
+  /* run regressions and repeat until convergence */
+  std::unique_ptr<double[]> 
+  W_sub_mem(new double[max_size * max_size]), beta_mem(new double[max_size]);
+  arma::mat W = K.i();
+  unsigned int i = 0L;
+  bool has_conv = false;
+  arma::vec w_new(dim);
+  for(; i < iter; ++i){
+    Rcpp::checkUserInterrupt();
+    
+    const arma::mat W_old = W;
+    unsigned int j = 0L;
+    for(auto idx = non_zero_indices.cbegin();
+        idx != non_zero_indices.cend(); ++idx, ++j){
+      unsigned int N_non_zero = idx->size();
+      if(N_non_zero < 1L){
+        for(arma::uword k = 0; k < dim; ++k){
+          if(k == j)
+            continue;
+          W(j, k) = W(k, j) = 0.;
+          
+          if(has_conv)
+            K(j, k) = K(k, j) = 0.;
+        }
+        
+        continue;
+        
+      }
+      
+      arma::mat W_sub(W_sub_mem.get(), N_non_zero, N_non_zero, false);
+      arma::vec beta(beta_mem.get(), N_non_zero, false);
+      
+      W_sub = W(*idx, *idx);
+      beta = S.unsafe_col(j)(*idx);
+      
+      int n_res_i = N_non_zero, info;
+      dposv_wrap(
+        &U_char, &n_res_i, &one_int, W_sub.memptr(), 
+        &n_res_i, beta.memptr(), &n_res_i, &info);
+      CHECK_LAPACK_INFO(info, dposv);
+      
+      /* notice: we also include the j'th element but we iterate past it */
+      w_new = W.cols(*idx) * beta;
+      
+      auto new_ele = w_new.begin();
+      for(arma::uword k = 0; k < dim; ++k, ++new_ele){
+        if(k == j)
+          continue;
+        W(j, k) = W(k, j) = *new_ele;
+        
+      }
+      
+      if(!has_conv)
+        continue;
+      
+      const double denum_fac = 
+        S(j, j) - arma::dot(W.unsafe_col(j)(*idx), beta);
+      const arma::uword *idx_k = idx->cbegin(); /* they are sorted */
+      const double *b = beta.cbegin();
+      for(arma::uword k = 0; k < dim; ++k){
+        if(k == j){
+          K(j, j) = 1. / denum_fac;
+          continue;
+          
+        }
+        
+        if(idx_k != idx->cend() and k == *idx_k){
+          K(j, k) = K(k, j) = - *(b++) / denum_fac;
+          ++idx_k;
+          continue;
+          
+        }
+        
+        K(j, k) = K(k, j) = 0.;
+      }
+    }
+    
+    if(has_conv)
+      break;
+    
+    /* take one more iteration where we set the concentration matrix */
+    has_conv = conv_criteria(W, W_old, eps);
+  }
+  
+  return cpp_ggmfit_return(S, K, n, nvar, i);
+}
+
 //[[Rcpp::export]]
 Rcpp::List cpp_ggmfit
 (const arma::mat &S, const unsigned int n, arma::mat K, 
@@ -63,11 +214,8 @@ Rcpp::List cpp_ggmfit
   const std::size_t ngen = glen.size(); /* number of cliques */
   
   /* return quickly if possible */
-  if(ngen == 1){
-    K = sym_mat_inv(S);
-    return cpp_ggmfit_return(S, K, n, nvar, 0L);
-    
-  }
+  if(ngen == 1)
+    return return_quick(S, n, K, nvar);
   
   /* setup vector with clique indices */
   std::size_t max_clique_size, max_resid_size;
@@ -150,11 +298,8 @@ Rcpp::List cpp_ggmfit_wood
   const std::size_t ngen = glen.size(); /* number of cliques */
   
   /* return quickly if possible */
-  if(ngen == 1){
-    K = sym_mat_inv(S);
-    return cpp_ggmfit_return(S, K, n, nvar, 0L);
-    
-  }
+  if(ngen == 1)
+    return return_quick(S, n, K, nvar);
   
   /* setup vector with clique indices */
   std::size_t max_clique_size;
@@ -183,6 +328,8 @@ Rcpp::List cpp_ggmfit_wood
   std::unique_ptr<int[]> ipiv(new int[nrhs]);
   arma::mat S_working = sym_mat_inv(K);
   for(; i < iter; ++i){
+    Rcpp::checkUserInterrupt();
+    
     const arma::mat S_working_old = S_working;
     
     auto S_cli_cli_inv = inv_covars.begin();

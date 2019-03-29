@@ -110,6 +110,9 @@ fit.cModel <- function(object, engine="ggmfit",start=NULL, ...){
     "ggmfit-cpp-wood" = ggmfit(
       object$datainfo$S, n.obs=object$datainfo$n.obs, glist=object$glist,
       start=start, details=0, use_cpp = TRUE, cpp_method = 2L, ...),
+    "ggmfit-cpp-reg" = ggmfit(
+      object$datainfo$S, n.obs=object$datainfo$n.obs, glist=object$glist,
+      start=start, details=0, use_cpp = TRUE, cpp_method = 3L, ...),
     "ggmfitr"         = ggmfitr(
       object$datainfo$S, n.obs=object$datainfo$n.obs, glist=object$glist,
       start=start, details=0,...))

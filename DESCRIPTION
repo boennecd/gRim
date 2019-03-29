@@ -16,7 +16,7 @@ Suggests:
     testthat
 ByteCompile: yes
 LinkingTo: Rcpp (>= 0.11.1), RcppArmadillo
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
 NeedsCompilation: yes
 SystemRequirements: C++11
 Packaged: 2017-03-31 11:11:18 UTC; sorenh
