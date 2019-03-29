@@ -1,7 +1,7 @@
 #include "arma.h"
 #include <vector>
 #include <algorithm>
-#include <cmath> 
+#include <cmath>
 
 extern "C"
 {
@@ -60,6 +60,16 @@ inline Rcpp::List return_quick
    const unsigned int nvar){
   K = sym_mat_inv(S);
   return cpp_ggmfit_return(S, K, n, nvar, 0L);
+}
+
+inline void get_ele_from_col
+  (const arma::mat &X, const arma::uword j, const arma::uvec &idx, 
+   arma::vec &out)
+{
+    const double *begin = X.colptr(j);
+    double *o = out.begin();
+    for(auto i : idx)
+      *(o++) = *(begin + i);
 }
 
 //[[Rcpp::export]]
@@ -121,14 +131,15 @@ Rcpp::List cpp_ggmfit_reg
   /* run regressions and repeat until convergence */
   std::unique_ptr<double[]> 
   W_sub_mem(new double[max_size * max_size]), beta_mem(new double[max_size]);
-  arma::mat W = K.i();
+  arma::mat W = sym_mat_inv(K);
   unsigned int i = 0L;
   bool has_conv = false;
   arma::vec w_new(dim);
+  arma::mat W_old;
   for(; i < iter; ++i){
     Rcpp::checkUserInterrupt();
     
-    const arma::mat W_old = W;
+    W_old = W;
     unsigned int j = 0L;
     for(auto idx = non_zero_indices.cbegin();
         idx != non_zero_indices.cend(); ++idx, ++j){
@@ -151,7 +162,7 @@ Rcpp::List cpp_ggmfit_reg
       arma::vec beta(beta_mem.get(), N_non_zero, false);
       
       W_sub = W(*idx, *idx);
-      beta = S.unsafe_col(j)(*idx);
+      get_ele_from_col(S, j, *idx, beta);
       
       int n_res_i = N_non_zero, info;
       dposv_wrap(
@@ -173,8 +184,11 @@ Rcpp::List cpp_ggmfit_reg
       if(!has_conv)
         continue;
       
+      /* we do not need W_sub anymore */
+      arma::vec W_col_sub(W_sub_mem.get(), N_non_zero, false);
+      get_ele_from_col(W, j, *idx, W_col_sub);
       const double denum_fac = 
-        S(j, j) - arma::dot(W.unsafe_col(j)(*idx), beta);
+        S(j, j) - arma::dot(W_col_sub, beta);
       const arma::uword *idx_k = idx->cbegin(); /* they are sorted */
       const double *b = beta.cbegin();
       for(arma::uword k = 0; k < dim; ++k){
